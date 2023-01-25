@@ -61,16 +61,16 @@ for instruction in instructions:
             # could be the first instruction in a function, for example
             continue
         prevInstruction = getInstructionAt(prevInstructionAddr)
-        if prevInstruction.mnemonicString == "MOV":
-            # did we move an absolute address into EDX?
-            if (prevInstruction.getOperandType(1) & SCALAR) != 0:
-                # we moved a scalar...
-                if (prevInstruction.getOperandType(0) & REGISTER) != 0:
-                    # okay, we moved into a register...
-                    register = prevInstruction.getOpObjects(0)[0]
-                    if register.getBaseRegister().name == "EDX":
-                        # hooray!
-                        add_io_reference(prevInstruction, 1, READ)
+        if (
+            prevInstruction.mnemonicString == "MOV"
+            and (prevInstruction.getOperandType(1) & SCALAR) != 0
+            and (prevInstruction.getOperandType(0) & REGISTER) != 0
+        ):
+            # okay, we moved into a register...
+            register = prevInstruction.getOpObjects(0)[0]
+            if register.getBaseRegister().name == "EDX":
+                # hooray!
+                add_io_reference(prevInstruction, 1, READ)
     elif instruction.mnemonicString == "OUT":
         #print "OUT @", instruction.address
         if (instruction.getOperandType(0) & SCALAR) != 0:
@@ -81,34 +81,33 @@ for instruction in instructions:
             # could be the first instruction in a function, for example
             continue
         prevInstruction = getInstructionAt(prevInstructionAddr)
-        if prevInstruction.mnemonicString == "MOV":
-            # did we move an absolute address into EDX?
-            if (prevInstruction.getOperandType(1) & SCALAR) != 0:
-                # we moved a scalar...
-                if (prevInstruction.getOperandType(0) & REGISTER) != 0:
-                    # okay, we moved into a register...
-                    register = prevInstruction.getOpObjects(0)[0]
-                    if register.getBaseRegister().name == "EDX":
-                        # hooray!
-                        add_io_reference(prevInstruction, 1, WRITE)
-                    elif register.getBaseRegister().name == "EAX":
+        if (
+            prevInstruction.mnemonicString == "MOV"
+            and (prevInstruction.getOperandType(1) & SCALAR) != 0
+            and (prevInstruction.getOperandType(0) & REGISTER) != 0
+        ):
+            # okay, we moved into a register...
+            register = prevInstruction.getOpObjects(0)[0]
+            if register.getBaseRegister().name == "EDX":
+                # hooray!
+                add_io_reference(prevInstruction, 1, WRITE)
+            elif register.getBaseRegister().name == "EAX":
                         # d'oh, we were writing to EAX (the value to write to
                         # the port)!  one more try...
-                        try:
-                            prevInstr = getInstructionAt(prevInstruction.fallFrom)
-                            if prevInstr.mnemonicString == "MOV":
-                                # did we move an absolute address into EDX?
-                                if (prevInstr.getOperandType(1) & SCALAR) != 0:
-                                    # we moved a scalar...
-                                    if (prevInstr.getOperandType(0) &
-                                        REGISTER) != 0:
-                                        # okay, we moved into a register...
-                                        register = prevInstr.getOpObjects(0)[0]
-                                        if register.getBaseRegister().name == \
-                                               "EDX":
-                                            # hooray!
-                                            add_io_reference(prevInstr, 1, WRITE)
-                        except:
-                            # oh well
-                            pass
+                try:
+                    prevInstr = getInstructionAt(prevInstruction.fallFrom)
+                    if (
+                        prevInstr.mnemonicString == "MOV"
+                        and (prevInstr.getOperandType(1) & SCALAR) != 0
+                        and (prevInstr.getOperandType(0) & REGISTER) != 0
+                    ):
+                        # okay, we moved into a register...
+                        register = prevInstr.getOpObjects(0)[0]
+                        if register.getBaseRegister().name == \
+                               "EDX":
+                            # hooray!
+                            add_io_reference(prevInstr, 1, WRITE)
+                except:
+                    # oh well
+                    pass
 
